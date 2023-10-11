@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, Response
 import firebase_admin
 from firebase_admin import credentials, db
-import re
+import re  # 정규식
 from flask import redirect
 
 app = Flask(__name__)
@@ -16,6 +16,7 @@ firebase_admin.initialize_app(cred, {
 # 로그인
 
 
+# 로그인
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -26,22 +27,25 @@ def login():
             users_ref = db.reference('users')
             query = users_ref.order_by_child('email').equal_to(email)
             results = query.get()
+            if results is None or len(results) == 0:
+                raise ValueError("No user with such email")
             user_id = list(results.keys())[0]
             user = results[user_id]
-            if user['password'] == password:
 
+            if user['password'] == password:
                 # 세션에 유저 정보 저장하기
                 session['user'] = {'uid': user_id, 'email': email}
-                return redirect('/')
+                # 로그인 성공시 /live_streaming 주소로 redirect
+                return redirect('/live_streaming')
+
             else:
                 return render_template('login.html', message='이메일이나 비밀번호가 일치하지 않습니다.')
         except Exception as e:
             return render_template('login.html', message='이메일이나 비밀번호가 일치하지 않습니다.')
-    else:
-        return render_template('login.html')
-
 
 # 회원가입
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -59,13 +63,15 @@ def signup():
 
         try:
             # Realtime Database에서 이미 등록된 이메일인지 확인하기
-            ref = db.reference('users')
-            snapshot = ref.order_by_child('email').equal_to(email).get()
-            if snapshot:
-                return render_template('signup.html', message='이미 등록된 이메일입니다.')
+            users_ref = db.reference('users')
+            query = users_ref.order_by_child('email').equal_to(email)
+            results = query.get()
+            if results is not None and len(results) > 0:
+                raise ValueError("User with this email already exists")
 
             # Realtime Database에 유저 정보 저장하기
-            ref.push({
+            new_user_ref = users_ref.push()
+            new_user_ref.set({
                 'email': email,
                 'phone': phone,
                 'password': password
@@ -74,6 +80,7 @@ def signup():
             return "<script>alert('회원가입이 완료되었습니다.');location.href='/login';</script>"
         except Exception as e:
             return render_template('signup.html', message=f'회원가입 중 오류가 발생했습니다.{(e)}')
+
     else:
         return render_template('signup.html')
 

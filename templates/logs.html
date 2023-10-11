@@ -14,22 +14,22 @@
       </thead>
       <tbody>
         {% for log in logs %}
-          <tr>
-            <td>{{ log.date }}</td>
-            <td>{{ log.time }}</td>
-            <td>
-              {% if log.is_registered %}
-                <span class="log-face success"></span> 등록됨
-              {% else %}
-                <span class="log-face fail"></span> 미등록
-              {% endif %}
-            </td>
-          </tr>
-        {% else %}
-          <tr>
-            <td colspan="3">출입 로그가 없습니다.</td>
-          </tr>
-        {% endfor %}
+        <tr>
+          <td>{{ log.date }}</td>
+          <td>{{ log.time }}</td>
+          <td>
+            {% if log.is_registered == 'Registered' %}
+              <span class="log-face success"></span> 등록됨
+            {% else %}
+              <span class="log-face fail"></span> 미등록
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="3">출입 로그가 없습니다.</td>
+        </tr>
+      {% endfor %}      
         </tbody>
     </table>
   </div>

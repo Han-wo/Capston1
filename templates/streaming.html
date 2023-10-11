@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h2>실시간 카메라</h2>
+  <div class="stream-and-log">
+    <div class="stream">
+      <img src="{{ url_for('live_streaming') }}" class="img-responsive" onerror="this.style.display='none'">
+    </div>
+    <div class="logs-container">
+      <h2>출입로그</h2>
+      <table class="logs-table">
+        <thead>
+          <tr>
+            <th>일자</th>
+            <th>시간</th>
+            <th>등록여부</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td>{{ log.date }}</td>
+            <td>{{ log.time }}</td>
+            <td>
+              {% if log.is_registered == 'Registered' %}
+                <span class="log-face success"></span> 등록됨
+              {% else %}
+                <span class="log-face fail"></span> 미등록
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="3">출입 로그가 없습니다.</td>
+          </tr>
+        {% endfor %}
+        
+        </tbody>
+      </table>
+      <a href="/logs" class="btn">상세보기</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

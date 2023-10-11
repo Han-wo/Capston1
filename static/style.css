@@ -284,3 +284,103 @@ input[type="tel"] {
     color: #fff;
   }
   
+  .stream-and-log {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.stream {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.logs-container {
+    flex: 1;
+}
+
+/*메인*/
+
+.container {
+    padding: 20px;
+}
+
+h2 {
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.stream-and-log {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.stream {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.logs-container {
+    flex: 1;
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.logs-table th,
+.logs-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.logs-table th {
+    background-color: #f7f7f7;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.log-face {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.success {
+    background-color: #28a745;
+}
+
+.fail {
+    background-color: #d93025;
+    color: #fff;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 20px;
+    text-align: center;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+
+
+
+
+  

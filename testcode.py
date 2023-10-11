@@ -1,5 +1,5 @@
 import cv2
-import random
+import tensorflow as tf
 import datetime
 import firebase_admin
 from firebase_admin import credentials, db
@@ -10,6 +10,8 @@ import hashlib
 import socket
 import numpy as np
 import struct
+import time
+
 
 app = Flask(__name__)
 app.secret_key = 'capston1_4'
@@ -21,9 +23,6 @@ port = 8485
 # 전역 소켓 연결
 client_socket = None
 
-# # 모델 로드
-# model = tf.keras.models.load_model('model/keras_model.h5')
-
 # Firebase Admin SDK 초기화
 cred = credentials.Certificate('serviceAccountKey.json')
 firebase_admin.initialize_app(cred, {
@@ -33,6 +32,9 @@ firebase_admin.initialize_app(cred, {
 ref_logs = db.reference('logs')
 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+# 모델 로드
+model = tf.keras.models.load_model('model/keras_model.h5')
 
 
 def login_required(f):
@@ -48,7 +50,6 @@ def gen_frames():
     global client_socket
     while True:
         try:
-            # 이미 연결이 되어 있지 않은 경우에만 새 연결을 생성
             if client_socket is None:
                 client_socket = socket.socket(
                     socket.AF_INET, socket.SOCK_STREAM)
@@ -66,7 +67,7 @@ def gen_frames():
 
                 nparr = np.frombuffer(frame_data, np.uint8)
                 frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                frame = cv2.flip(frame, 1)  # 얼굴 좌우 반전
+                frame = cv2.flip(frame, 1)
 
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(gray,
@@ -74,38 +75,49 @@ def gen_frames():
                                                       minNeighbors=5,
                                                       minSize=(30, 30),
                                                       flags=cv2.CASCADE_SCALE_IMAGE)
-                # 얼굴이 인식되면
+
+                now = datetime.datetime.now()
+                date = now.strftime('%Y-%m-%d')
+                current_time = now.strftime('%H:%M:%S')
+
                 if len(faces) > 0:
-                    now = datetime.datetime.now()
-                    date = now.strftime('%Y-%m-%d')
-                    time = now.strftime('%H:%M:%S')
+                    for (x, y, w, h) in faces:
+                        face_img = gray[y:y+h, x:x+w]
+                        resized_img = cv2.resize(face_img, (224, 224))
+                        rgb_img = cv2.cvtColor(resized_img, cv2.COLOR_GRAY2RGB)
+                        normalized_img = rgb_img / 255.0
+                        reshaped_img = np.reshape(normalized_img, (1, 224, 224, 3))
+                        result = model.predict(reshaped_img)
 
-                    # 랜덤으로 얼굴이 등록되었는지 여부 기록
-                    is_registered = random.choice([True, False])
-
-                    # 출입로그 데이터 작성
-                    log = {
-                        'date': date,
-                        'time': time,
-                        'is_registered': is_registered
-                    }
-
-                    # Firebase에 출입로그 데이터 추가
-                    ref_logs.push(log)
-
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h),
-                                  (255, 0, 0), 2)
+                        if result[0][0] > 0.7:
+                            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                            cv2.putText(frame, 'Pass', (x, y-10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                            ref_logs.push({
+                                'date': date,
+                                'time': current_time,
+                                'is_registered': 'Registered'
+                            })
+                        else:
+                            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                            cv2.putText(frame, 'X', (x, y-10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                            ref_logs.push({
+                                'date': date,
+                                'time': current_time,
+                                'is_registered': 'Unregistered'
+                            })
 
                 ret, buffer = cv2.imencode('.jpg', frame)
                 frame = buffer.tobytes()
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
         except Exception as e:
             print(f"Error in gen_frames(): {e}")
             client_socket.close()
-            client_socket = None  # 소켓 연결을 재설정
-            time.sleep(1)  # wait before reconnect
+            client_socket = None
+            time.sleep(1)
 
 
 @app.route('/')
@@ -227,49 +239,3 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="192.168.0.30", port=8080, debug=True)
-
-
-# def gen_frames():
-#     capture = cv2.VideoCapture(0)
-#     capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-#     capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-#     while True:
-#         success, frame = capture.read()
-#         if not success:
-#             break
-#         else:
-#             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#             faces = face_cascade.detectMultiScale(gray,
-#                                                   scaleFactor=1.1,
-#                                                   minNeighbors=5,
-#                                                   minSize=(30, 30),
-#                                                   flags=cv2.CASCADE_SCALE_IMAGE)
-#             # 얼굴이 인식되면
-#             if len(faces) > 0:
-#                 now = datetime.datetime.now()
-#                 date = now.strftime('%Y-%m-%d')
-#                 time = now.strftime('%H:%M:%S')
-
-#                 # 랜덤으로 얼굴이 등록되었는지 여부 기록
-#                 is_registered = random.choice([True, False])
-
-#                 # 출입로그 데이터 작성
-#                 log = {
-#                     'date': date,
-#                     'time': time,
-#                     'is_registered': is_registered
-#                 }
-
-#                 # Firebase에 출입로그 데이터 추가
-#                 ref_logs.push(log)
-
-#             for (x, y, w, h) in faces:
-#                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
-#             ret, buffer = cv2.imencode('.jpg', frame)
-#             frame = buffer.tobytes()
-#             yield (b'--frame\r\n'
-#                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-#     capture.release()

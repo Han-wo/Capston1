@@ -1,4 +1,3 @@
-#
 import cv2
 import datetime
 import random
@@ -45,58 +44,9 @@ def logs():
     return render_template('logs.html', logs=log_list)
 
 
-def process_frame():
-    while True:
-        ret, frame = cap.read()
-
-        if ret:
-            # 회색조 변환
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-            # 얼굴 인식
-            faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-
-            # 얼굴이 인식되면
-            if len(faces) > 0:
-                now = datetime.datetime.now()
-                date = now.strftime('%Y-%m-%d')
-                time = now.strftime('%H:%M:%S')
-
-                # 랜덤으로 얼굴이 등록되었는지 여부 기록
-                is_registered = random.choice([True, False])
-
-                # 출입로그 데이터 작성
-                log = {
-                    'date': date,
-                    'time': time,
-                    'is_registered': is_registered
-                }
-
-                # Firebase에 출입로그 데이터 추가
-                ref_logs.push(log)
-
-                # 얼굴 영역 표시
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-                # 대기
-                cv2.waitKey(5000)
-
-            # 화면에 출력
-            cv2.imshow('얼굴 인식', frame)
-
-        # q 키를 누르면 종료 (라즈베리파이 실시간으로 띄우게 되면 없어도 되는코드)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    # 객체 해제
-    cap.release()
-    cv2.destroyAllWindows()
-
-
 def run():
-    # process_frame() 함수를 스레드로 실행
-    Thread(target=process_frame).start()
+    # # process_frame() 함수를 스레드로 실행
+    # Thread(target=process_frame).start()
 
     # Flask 애플리케이션 실행
     app.run(debug=True, use_reloader=False)
